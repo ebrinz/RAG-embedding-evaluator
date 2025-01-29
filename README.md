@@ -132,26 +132,12 @@ See `evals/requirements.txt` for complete list of dependencies.
 ├── config
 │   └── embedding_eval.yaml
 ├── data
-│   ├── cache
-│   │   ├── intfloat_e5-large-v2_content.json
-│   │   ├── intfloat_e5-large-v2_embeddings.npy
-│   │   ├── sentence-transformers_all-MiniLM-L6-v2_content.json
-│   │   ├── sentence-transformers_all-MiniLM-L6-v2_embeddings.npy
-│   │   ├── sentence-transformers_all-mpnet-base-v2_content.json
-│   │   ├── sentence-transformers_all-mpnet-base-v2_embeddings.npy
-│   │   └── test_data.json
+│   └── cache
+│   │   └── ...
 │   ├── processed_dataset.csv
-│   ├── processed_dataset.stats.json
-│   └── wiki_movie_plots_deduped_with_summaries.csv
+│   └── processed_dataset.stats.json
 ├── embedding
 │   ├── __init__.py
-│   ├── __pycache__
-│   │   ├── __init__.cpython-311.pyc
-│   │   ├── cli.cpython-311.pyc
-│   │   ├── data_loader.cpython-311.pyc
-│   │   ├── evaluator.cpython-311.pyc
-│   │   ├── logger_config.cpython-311.pyc
-│   │   └── metrics.cpython-311.pyc
 │   ├── cli.py
 │   ├── data_loader.py
 │   ├── evaluator.py
