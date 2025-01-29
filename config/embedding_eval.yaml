@@ -1,0 +1,33 @@
+models:
+  - name: sentence-transformers/all-MiniLM-L6-v2
+    description: Lightweight general-purpose embedding model
+  - name: sentence-transformers/all-mpnet-base-v2
+    description: MPNet-based model with strong performance
+  - name: intfloat/e5-large-v2
+    description: E5 large model optimized for similarity search
+
+output_dir: results/embedding_benchmarks
+batch_size: 32
+device: mps
+metrics:
+  - mrr
+  - ndcg@5
+  - ndcg@10
+
+dataset:
+  path: ../data/processed_dataset.csv  # Changed to CSV
+  cache_dir: ../data/cache
+  
+  # Column mappings for the processed dataset
+  columns:
+    content: PlotSummary       # Main content to be embedded
+    identifier: Title          # Unique identifier for each item
+    metadata: Genre            # Metadata for relevance scoring
+    
+  sampling:
+    n_samples: 1000           # Number of content samples for evaluation
+    n_queries: 100            # Number of queries to generate
+
+  evaluation:
+    query_template: "Find content similar to '{identifier}' ({metadata})"
+    similarity_threshold: 0.5  # Threshold for binary relevance scoring

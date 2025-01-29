@@ -1,0 +1,13 @@
+**/__pycache__/
+*json
+*csv
+
+src/ui/node_modules/
+data/chunks/
+data/artifacts/
+data/cache
+cache/
+
+.DS_Store
+
+.venv
