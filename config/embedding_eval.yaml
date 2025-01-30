@@ -15,19 +15,25 @@ metrics:
   - ndcg@10
 
 dataset:
-  path: ../data/processed_dataset.csv  # Changed to CSV
-  cache_dir: ../data/cache
+  path: ../data/processed_dataset.csv
+  cache_dir: data/cache
   
-  # Column mappings for the processed dataset
+  # Column mappings for the dataset
   columns:
     content: PlotSummary       # Main content to be embedded
     identifier: Title          # Unique identifier for each item
     metadata: Genre            # Metadata for relevance scoring
     
   sampling:
-    n_samples: 1000           # Number of content samples for evaluation
+    n_samples: 1000           # Number of content samples
     n_queries: 100            # Number of queries to generate
 
   evaluation:
     query_template: "Find content similar to '{identifier}' ({metadata})"
     similarity_threshold: 0.5  # Threshold for binary relevance scoring
+    test_cases_path: config/test_cases.json  # Path to test cases file
+
+othermodelstoworkin:
+  - name: voyageai/voyage-3-large
+  - name: sentence-transformers/gtr-t5-large
+  - name: answerdotai/ModernBERT-large

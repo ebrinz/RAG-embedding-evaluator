@@ -2,79 +2,72 @@
 import pytest
 from ..metrics import calculate_mrr, calculate_ndcg
 
-# Test data simulating movie plot relevance scenarios
 @pytest.fixture
-def perfect_ranking():
-    return [1, 1, 1, 0, 0]  # First three are relevant
+def high_relevance_ranking():
+    return [1, 1, 1, 0, 0]  # First three items are relevant
 
 @pytest.fixture
-def imperfect_ranking():
-    return [0, 1, 1, 0, 1]  # Relevant docs at positions 2, 3, and 5
+def mixed_relevance_ranking():
+    return [0, 1, 1, 0, 1]  # Scattered relevant items
 
 @pytest.fixture
-def worst_ranking():
-    return [0, 0, 0, 0, 1]  # Relevant doc at last position
+def low_relevance_ranking():
+    return [0, 0, 0, 0, 1]  # Only last item relevant
 
 @pytest.fixture
-def binary_relevance_queries():
-    """
-    Simulated movie plot relevance scenarios.
-    1 = relevant (similar plot/theme), 0 = irrelevant
-    """
+def relevance_patterns():
+    """Different relevance patterns for testing."""
     return [
-        # Perfect match (e.g., exact genre and theme match)
-        [1, 0, 0, 0, 0],
-        # Multiple relevant results (e.g., similar genre films)
-        [1, 1, 0, 0, 0],
-        # Scattered relevance (e.g., mixed genre/theme matches)
-        [1, 0, 1, 0, 1],
+        [1, 0, 0, 0, 0],  # Single relevant at start
+        [1, 1, 0, 0, 0],  # Multiple relevant at start
+        [1, 0, 1, 0, 1],  # Scattered relevance pattern
     ]
 
-def test_mrr_perfect_first():
-    """Test MRR when first result is relevant."""
+def test_mrr_top_result():
+    """Test MRR with relevant item at top."""
     rankings = [1, 0, 0, 0]
     assert calculate_mrr(rankings) == 1.0
 
-def test_mrr_second_position():
-    """Test MRR when relevant result is second."""
+def test_mrr_middle_result():
+    """Test MRR with relevant item in middle."""
     rankings = [0, 1, 0, 0]
     assert calculate_mrr(rankings) == 0.5
 
 def test_mrr_no_relevant():
-    """Test MRR when no relevant results found."""
+    """Test MRR with no relevant items."""
     rankings = [0, 0, 0, 0]
     assert calculate_mrr(rankings) == 0.0
 
-def test_ndcg_perfect(perfect_ranking):
-    """Test nDCG with perfect ranking."""
-    assert calculate_ndcg(perfect_ranking) == 1.0
+def test_ndcg_optimal(high_relevance_ranking):
+    """Test nDCG with optimal ranking."""
+    assert calculate_ndcg(high_relevance_ranking) == 1.0
 
-def test_ndcg_imperfect(imperfect_ranking):
-    """Test nDCG with imperfect ranking."""
-    score = calculate_ndcg(imperfect_ranking)
-    assert 0 < score < 1  # Score should be between 0 and 1
+def test_ndcg_suboptimal(mixed_relevance_ranking):
+    """Test nDCG with suboptimal ranking."""
+    score = calculate_ndcg(mixed_relevance_ranking)
+    assert 0 < score < 1
     assert score == pytest.approx(0.7666, rel=1e-3)
 
-def test_ndcg_worst(worst_ranking):
-    """Test nDCG with worst possible ranking."""
-    score = calculate_ndcg(worst_ranking)
-    assert score < 0.5  # Should be a low score
+def test_ndcg_minimal(low_relevance_ranking):
+    """Test nDCG with minimal relevance."""
+    score = calculate_ndcg(low_relevance_ranking)
+    assert score < 0.5
 
 def test_ndcg_empty():
     """Test nDCG with empty ranking."""
     assert calculate_ndcg([]) == 0.0
 
-def test_ndcg_k_truncation():
-    """Test nDCG with k-truncation."""
+def test_ndcg_truncation():
+    """Test nDCG with position cutoff."""
     rankings = [0, 1, 1, 0, 1]
-    assert calculate_ndcg(rankings, k=3) != calculate_ndcg(rankings)  # Should differ when truncated
+    assert calculate_ndcg(rankings, k=3) != calculate_ndcg(rankings)
 
-def test_ndcg_all_relevant():
-    """Test nDCG when all documents are relevant."""
+def test_ndcg_full_relevance():
+    """Test nDCG with all relevant items."""
     rankings = [1, 1, 1]
     assert calculate_ndcg(rankings) == 1.0
 
-def test_ndcg_all_irrelevant():
-    """Test nDCG when no documents are relevant."""
+def test_ndcg_no_relevance():
+    """Test nDCG with no relevant items."""
     rankings = [0, 0, 0]
     assert calculate_ndcg(rankings) == 0.0

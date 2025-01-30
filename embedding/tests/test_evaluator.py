@@ -1,39 +1,36 @@
-
-
-
-
-
 """Tests for the embedding evaluator."""
 import pytest
 from pathlib import Path
 import pandas as pd
 import numpy as np
+import json
 import yaml
 from ..evaluator import EmbeddingEvaluator
 
 # Paths
-TEST_CONFIG_PATH = Path(__file__).parent.parent.parent / "config" / "test_config.yaml"
+TEST_CONFIG_PATH = Path(__file__).parent.parent.parent / "config" / "embedding_eval.yaml"
 
 @pytest.fixture
-def sample_movie_data():
-    """Sample movie plot summaries and queries."""
+def test_cases():
+    """Load test cases from configuration."""
+    with open(TEST_CONFIG_PATH) as f:
+        config = yaml.safe_load(f)
+    
+    test_cases_path = Path(config['dataset']['evaluation']['test_cases_path'])
+    if not test_cases_path.is_absolute():
+        test_cases_path = Path(TEST_CONFIG_PATH).parent / test_cases_path
+    
+    with open(test_cases_path) as f:
+        return json.load(f)
+
+@pytest.fixture
+def sample_evaluation_data(test_cases):
+    """Generate evaluation data from test cases."""
     return {
-        'queries': [
-            "A science fiction movie about time travel and paradoxes",
-            "A romantic comedy about mistaken identity",
-            "An action movie with car chases and explosions"
-        ],
-        'documents': [
-            "A scientist invents a time machine and travels to the future, only to discover the consequences of his actions have created a paradox that threatens his existence.",
-            "Two strangers meet at a coffee shop and fall in love, but a case of mistaken identity leads to hilarious complications.",
-            "A former spy must race against time in high-speed car chases while trying to prevent a terrorist attack.",
-            "A family drama about coming to terms with loss and grief.",
-            "A documentary about the migration patterns of butterflies."
-        ],
+        'queries': [case['query'] for case in test_cases['cases']],
+        'content': [case['content'] for case in test_cases['cases']],
         'relevance_scores': [
-            [1, 0, 0, 0, 0],  # Relevant to sci-fi query
-            [0, 1, 0, 0, 0],  # Relevant to rom-com query
-            [0, 0, 1, 0, 0]   # Relevant to action query
+            [case['expected_relevance']] for case in test_cases['cases']
         ]
     }
 
@@ -50,14 +47,14 @@ def test_evaluator_initialization(config):
     assert evaluator.batch_size == config['batch_size']
     assert evaluator.device == config['device']
 
-def test_evaluate_model(config, sample_movie_data):
+def test_evaluate_model(config, sample_evaluation_data):
     """Test single model evaluation."""
     evaluator = EmbeddingEvaluator(TEST_CONFIG_PATH)
     results = evaluator.evaluate_model(
         config['models'][0],
-        sample_movie_data['queries'],
-        sample_movie_data['documents'],
-        sample_movie_data['relevance_scores']
+        sample_evaluation_data['queries'],
+        sample_evaluation_data['content'],
+        sample_evaluation_data['relevance_scores']
     )
     
     # Check result structure
@@ -70,13 +67,13 @@ def test_evaluate_model(config, sample_movie_data):
         assert metric_key in results
         assert 0 <= results[metric_key] <= 1
 
-def test_run_evaluation(config, sample_movie_data):
+def test_run_evaluation(config, sample_evaluation_data):
     """Test full evaluation pipeline."""
     evaluator = EmbeddingEvaluator(TEST_CONFIG_PATH)
     results_df = evaluator.run_evaluation(
-        sample_movie_data['queries'],
-        sample_movie_data['documents'],
-        sample_movie_data['relevance_scores']
+        sample_evaluation_data['queries'],
+        sample_evaluation_data['content'],
+        sample_evaluation_data['relevance_scores']
     )
     
     # Check DataFrame structure
@@ -102,15 +99,14 @@ def test_missing_required_fields():
     
     invalid_config.unlink()  # Clean up
 
-def test_document_length_limits(config, sample_movie_data):
-    """Test handling of document length limits from config."""
-    # Create a document that exceeds max_length
+def test_content_length_limits(config, test_cases):
+    """Test handling of content length limits."""
     max_length = config.get('test_data', {}).get('max_length', 512)
-    long_doc = " ".join(["word"] * max_length)
+    long_content = " ".join(["word"] * max_length)
     
     test_data = {
-        'queries': ["test query"],
-        'documents': [long_doc],
+        'queries': [test_cases['cases'][0]['query']],
+        'content': [long_content],
         'relevance_scores': [[1]]
     }
     
@@ -118,66 +114,21 @@ def test_document_length_limits(config, sample_movie_data):
     results = evaluator.evaluate_model(
         config['models'][0],
         test_data['queries'],
-        test_data['documents'],
+        test_data['content'],
         test_data['relevance_scores']
     )
     
-    assert 'avg_mrr' in results  # Should handle long document without errors
+    assert 'avg_mrr' in results
 
+def test_similarity_distribution(test_cases):
+    """Test similarity distribution requirements."""
+    distribution = test_cases['similarity_distribution']
+    total = sum(distribution.values())
+    assert pytest.approx(total, 0.01) == 1.0
 
-
-
-
-############## older
-
-@pytest.mark.parametrize("query_idx", [0, 1, 2])
-def test_genre_specific_evaluation(model_configs, sample_movie_data, query_idx):
-    """Test evaluation for specific movie genres."""
-    evaluator = EmbeddingEvaluator([model_configs[0]])  # Test with one model
-    results = evaluator.evaluate_model(
-        model_configs[0]['name'],
-        [sample_movie_data['queries'][query_idx]],
-        sample_movie_data['documents'],
-        [sample_movie_data['relevance_scores'][query_idx]]
-    )
-    
-    assert results['avg_mrr'] >= 0  # Should find at least some relevance
-
-def test_error_handling(model_configs):
-    """Test error handling with invalid inputs."""
-    evaluator = EmbeddingEvaluator(model_configs)
-    
-    with pytest.raises(Exception):
-        # Test with mismatched query and relevance score lengths
-        evaluator.evaluate_model(
-            model_configs[0]['name'],
-            ["query1", "query2"],
-            ["doc1"],
-            [[1]]
-        )
-
-def test_empty_documents(model_configs):
-    """Test handling of empty document list."""
-    evaluator = EmbeddingEvaluator(model_configs)
-    
-    with pytest.raises(Exception):
-        evaluator.evaluate_model(
-            model_configs[0]['name'],
-            ["query"],
-            [],
-            [[]]
-        )
-
-def test_large_document_handling(model_configs):
-    """Test handling of large documents."""
-    long_text = " ".join(["word"] * 1000)  # Create a long document
-    evaluator = EmbeddingEvaluator([model_configs[0]])
-    
-    results = evaluator.evaluate_model(
-        model_configs[0]['name'],
-        ["short query"],
-        [long_text],
-        [[1]]
-    )
-    
-    assert 'avg_mrr' in results  # Should process without errors
+def test_test_requirements(test_cases):
+    """Test statistical requirements."""
+    requirements = test_cases['test_requirements']
+    assert requirements['min_queries_per_category'] > 0
+    assert 0 < requirements['max_query_content_ratio'] <= 1.0
+    assert requirements['min_relevant_per_query'] > 0

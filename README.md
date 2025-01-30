@@ -155,3 +155,10 @@ See `evals/requirements.txt` for complete list of dependencies.
     └── embedding_benchmarks
         └── results.csv
 ```
+
+
+## TODOS
+
+[] Make sure number of test cases generated is enough and at proper distribution
+[] Get all models tokenizing correctly
+[] Fix filepathing in notebooks, or pull test generation out of notebook
