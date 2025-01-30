@@ -130,12 +130,16 @@ See `evals/requirements.txt` for complete list of dependencies.
 ├── README.md
 ├── __init__.py
 ├── config
-│   └── embedding_eval.yaml
+│   ├── README.md
+│   ├── embedding_eval.yaml
+│   ├── test_cases.json
+│   └── test_recommendations.json
 ├── data
-│   └── cache
+│   ├── cache
 │   │   └── ...
 │   ├── processed_dataset.csv
-│   └── processed_dataset.stats.json
+│   ├── processed_dataset.stats.json
+│   └── wiki_movie_plots_deduped_with_summaries.csv
 ├── embedding
 │   ├── __init__.py
 │   ├── cli.py
@@ -148,17 +152,19 @@ See `evals/requirements.txt` for complete list of dependencies.
 │       ├── test_evaluator.py
 │       └── test_metrics.py
 ├── notebooks
+│   ├── analyze_data_patterns.ipynb
 │   ├── data_filterer.ipynb
-│   └── embedding_comparison.ipynb
+│   └── generate_test_cases.ipynb
 ├── requirements.txt
 └── results
     └── embedding_benchmarks
-        └── results.csv
 ```
 
 
 ## TODOS
 
+```
 [] Make sure number of test cases generated is enough and at proper distribution
 [] Get all models tokenizing correctly
 [] Fix filepathing in notebooks, or pull test generation out of notebook
+```
